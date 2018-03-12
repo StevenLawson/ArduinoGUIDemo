@@ -6,19 +6,28 @@ import java.util.Properties;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import javax.swing.*;
+import org.apache.commons.lang3.StringUtils;
 
 public class ArduinoGUIDemo extends javax.swing.JFrame
 {
-    private static final String COM_PORT_NAME = "COM5";
-
+    private final AtomicBoolean running = new AtomicBoolean(false);
     private final ConcurrentLinkedQueue<Runnable> outputQueue = new ConcurrentLinkedQueue<>();
     private final Object queueMonitor = new Object();
-
     private JSCSerialSession session = null;
 
     public ArduinoGUIDemo()
     {
         initComponents();
+    }
+
+    public void setup()
+    {
+        setTitle(getTitle() + getVersionInfo());
+
+        setVisible(true);
+        setLocationRelativeTo(null);
+
+        setControlsEnabled(false);
 
         btnBlink3.addActionListener(event -> queueCommand(() ->
         {
@@ -35,24 +44,36 @@ public class ArduinoGUIDemo extends javax.swing.JFrame
             final int value = (int) spnBlinkCustom.getValue();
             blinkLED(value);
         }));
+
+        btnConnect.addActionListener(event ->
+        {
+
+            startSerialThread(StringUtils.trimToEmpty(txtPort.getText()));
+        });
+
+        btnDisconnect.addActionListener(event ->
+        {
+            running.set(false);
+        });
     }
 
-    public void setup()
+    private void startSerialThread(final String portName)
     {
-        setTitle(getTitle() + getVersionInfo());
-        
-        setVisible(true);
-        setLocationRelativeTo(null);
+        if (running.get())
+        {
+            return;
+        }
 
+        btnConnect.setEnabled(false);
+        txtPort.setEnabled(false);
+        btnDisconnect.setEnabled(true);
         setControlsEnabled(false);
 
         new Thread(() ->
         {
             try
             {
-                final AtomicBoolean running = new AtomicBoolean(false);
-
-                session = new JSCSerialSession(COM_PORT_NAME, 9600);
+                session = new JSCSerialSession(portName, 9600);
 
                 final AtomicBoolean interrupt = new AtomicBoolean(false);
                 session.processMessages(interrupt, 5_000, message ->
@@ -105,6 +126,14 @@ public class ArduinoGUIDemo extends javax.swing.JFrame
                         JOptionPane.ERROR_MESSAGE
                 ));
             }
+
+            SwingUtilities.invokeLater(() ->
+            {
+                btnConnect.setEnabled(true);
+                txtPort.setEnabled(true);
+                btnDisconnect.setEnabled(false);
+                setControlsEnabled(false);
+            });
         }).start();
     }
 
@@ -191,6 +220,11 @@ public class ArduinoGUIDemo extends javax.swing.JFrame
         jLabel1 = new javax.swing.JLabel();
         jLabel2 = new javax.swing.JLabel();
         jSeparator1 = new javax.swing.JSeparator();
+        jLabel3 = new javax.swing.JLabel();
+        txtPort = new javax.swing.JTextField();
+        btnConnect = new javax.swing.JButton();
+        jSeparator2 = new javax.swing.JSeparator();
+        btnDisconnect = new javax.swing.JButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         setTitle("Arduino GUI Demo - ");
@@ -213,30 +247,64 @@ public class ArduinoGUIDemo extends javax.swing.JFrame
         jLabel2.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
         jLabel2.setText("Times");
 
+        jLabel3.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
+        jLabel3.setText("Port:");
+
+        txtPort.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
+        txtPort.setText("COM5");
+
+        btnConnect.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
+        btnConnect.setText("Connect");
+
+        btnDisconnect.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
+        btnDisconnect.setText("Disconnect");
+        btnDisconnect.setEnabled(false);
+
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
+            .addGroup(layout.createSequentialGroup()
                 .addContainerGap()
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                    .addComponent(jSeparator1)
-                    .addComponent(btnBlink3, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addGroup(javax.swing.GroupLayout.Alignment.LEADING, layout.createSequentialGroup()
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(jSeparator2)
+                    .addComponent(jSeparator1, javax.swing.GroupLayout.Alignment.TRAILING)
+                    .addComponent(btnBlink3, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addGroup(layout.createSequentialGroup()
                         .addComponent(jLabel1)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                         .addComponent(spnBlinkCustom, javax.swing.GroupLayout.PREFERRED_SIZE, 70, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addComponent(jLabel2)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                        .addComponent(btnBlinkCustom, javax.swing.GroupLayout.DEFAULT_SIZE, 149, Short.MAX_VALUE))
-                    .addComponent(btnBlink6, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                        .addComponent(btnBlinkCustom, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                    .addComponent(btnBlink6, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addGroup(layout.createSequentialGroup()
+                        .addComponent(jLabel3)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                        .addComponent(txtPort, javax.swing.GroupLayout.PREFERRED_SIZE, 100, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                        .addComponent(btnConnect)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(btnDisconnect)
+                        .addGap(0, 0, Short.MAX_VALUE)))
                 .addContainerGap())
         );
+
+        layout.linkSize(javax.swing.SwingConstants.HORIZONTAL, new java.awt.Component[] {btnConnect, btnDisconnect});
+
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
                 .addContainerGap()
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jLabel3)
+                    .addComponent(txtPort, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(btnConnect)
+                    .addComponent(btnDisconnect))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addComponent(jSeparator2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addComponent(btnBlink3)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(btnBlink6)
@@ -250,6 +318,10 @@ public class ArduinoGUIDemo extends javax.swing.JFrame
                     .addComponent(btnBlinkCustom))
                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
+
+        layout.linkSize(javax.swing.SwingConstants.VERTICAL, new java.awt.Component[] {btnConnect, jLabel3, txtPort});
+
+        layout.linkSize(javax.swing.SwingConstants.VERTICAL, new java.awt.Component[] {btnBlinkCustom, jLabel1, jLabel2, spnBlinkCustom});
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
@@ -283,9 +355,14 @@ public class ArduinoGUIDemo extends javax.swing.JFrame
     private javax.swing.JButton btnBlink3;
     private javax.swing.JButton btnBlink6;
     private javax.swing.JButton btnBlinkCustom;
+    private javax.swing.JButton btnConnect;
+    private javax.swing.JButton btnDisconnect;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
+    private javax.swing.JLabel jLabel3;
     private javax.swing.JSeparator jSeparator1;
+    private javax.swing.JSeparator jSeparator2;
     private javax.swing.JSpinner spnBlinkCustom;
+    private javax.swing.JTextField txtPort;
     // End of variables declaration//GEN-END:variables
 }
