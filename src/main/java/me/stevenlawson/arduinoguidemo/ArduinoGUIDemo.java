@@ -26,7 +26,8 @@ public class ArduinoGUIDemo extends javax.swing.JFrame
         setVisible(true);
         setLocationRelativeTo(null);
 
-        setControlsEnabled(false);
+        setConnectControlsEnabled(true);
+        setBlinkControlsEnabled(false);
 
         btnBlink3.addActionListener(event -> queueCommand(() ->
         {
@@ -46,7 +47,8 @@ public class ArduinoGUIDemo extends javax.swing.JFrame
 
         btnConnect.addActionListener(event ->
         {
-            startSerialThread(StringUtils.trimToEmpty(txtPort.getText()));
+            final String portName = StringUtils.trimToEmpty(txtPort.getText());
+            startSerialThread(portName);
         });
 
         btnDisconnect.addActionListener(event ->
@@ -62,10 +64,8 @@ public class ArduinoGUIDemo extends javax.swing.JFrame
             return;
         }
 
-        btnConnect.setEnabled(false);
-        txtPort.setEnabled(false);
-        btnDisconnect.setEnabled(true);
-        setControlsEnabled(false);
+        setConnectControlsEnabled(false);
+        setBlinkControlsEnabled(false);
 
         new Thread(() ->
         {
@@ -85,7 +85,7 @@ public class ArduinoGUIDemo extends javax.swing.JFrame
 
                 if (running.get())
                 {
-                    SwingUtilities.invokeLater(() -> setControlsEnabled(true));
+                    SwingUtilities.invokeLater(() -> setBlinkControlsEnabled(true));
                 }
                 else
                 {
@@ -120,12 +120,12 @@ public class ArduinoGUIDemo extends javax.swing.JFrame
                 ));
             }
 
+            running.set(false);
+
             SwingUtilities.invokeLater(() ->
             {
-                btnConnect.setEnabled(true);
-                txtPort.setEnabled(true);
-                btnDisconnect.setEnabled(false);
-                setControlsEnabled(false);
+                setConnectControlsEnabled(true);
+                setBlinkControlsEnabled(false);
             });
         }).start();
     }
@@ -138,13 +138,13 @@ public class ArduinoGUIDemo extends javax.swing.JFrame
         }
     }
 
-    private void blinkLED(int numBlinks)
+    private boolean blinkLED(int numBlinks)
     {
         final AtomicBoolean success = new AtomicBoolean(false);
 
         if (session != null)
         {
-            SwingUtilities.invokeLater(() -> setControlsEnabled(false));
+            SwingUtilities.invokeLater(() -> setBlinkControlsEnabled(false));
 
             session.sendCommand(true, String.format("*BLINK_LED,%d\n", numBlinks));
 
@@ -163,7 +163,7 @@ public class ArduinoGUIDemo extends javax.swing.JFrame
                 }
             });
 
-            SwingUtilities.invokeLater(() -> setControlsEnabled(true));
+            SwingUtilities.invokeLater(() -> setBlinkControlsEnabled(true));
         }
 
         if (!success.get())
@@ -176,14 +176,23 @@ public class ArduinoGUIDemo extends javax.swing.JFrame
                     JOptionPane.ERROR_MESSAGE
             ));
         }
+
+        return success.get();
     }
 
-    private void setControlsEnabled(boolean state)
+    private void setBlinkControlsEnabled(boolean state)
     {
         btnBlink3.setEnabled(state);
         btnBlink6.setEnabled(state);
         btnBlinkCustom.setEnabled(state);
         spnBlinkCustom.setEnabled(state);
+    }
+
+    private void setConnectControlsEnabled(boolean state)
+    {
+        btnConnect.setEnabled(state);
+        txtPort.setEnabled(state);
+        btnDisconnect.setEnabled(!state);
     }
 
     public static String getVersionInfo()
@@ -252,7 +261,6 @@ public class ArduinoGUIDemo extends javax.swing.JFrame
 
         btnDisconnect.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
         btnDisconnect.setText("Disconnect");
-        btnDisconnect.setEnabled(false);
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);

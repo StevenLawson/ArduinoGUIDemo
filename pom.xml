@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>me.stevenlawson</groupId>
     <artifactId>ArduinoGUIDemo</artifactId>
-    <version>1.0.03</version>
+    <version>1.0.04</version>
     <packaging>jar</packaging>
     <name>ArduinoGUIDemo</name>
 
