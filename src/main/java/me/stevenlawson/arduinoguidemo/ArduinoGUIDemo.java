@@ -12,7 +12,6 @@ public class ArduinoGUIDemo extends javax.swing.JFrame
 {
     private final AtomicBoolean running = new AtomicBoolean(false);
     private final ConcurrentLinkedQueue<Runnable> outputQueue = new ConcurrentLinkedQueue<>();
-    private final Object queueMonitor = new Object();
     private JSCSerialSession session = null;
 
     public ArduinoGUIDemo()
@@ -41,13 +40,12 @@ public class ArduinoGUIDemo extends javax.swing.JFrame
 
         btnBlinkCustom.addActionListener(event -> queueCommand(() ->
         {
-            final int value = (int) spnBlinkCustom.getValue();
-            blinkLED(value);
+            final int numBlinks = (int) spnBlinkCustom.getValue();
+            blinkLED(numBlinks);
         }));
 
         btnConnect.addActionListener(event ->
         {
-
             startSerialThread(StringUtils.trimToEmpty(txtPort.getText()));
         });
 
@@ -107,11 +105,6 @@ public class ArduinoGUIDemo extends javax.swing.JFrame
                     {
                         cmd.run();
                     }
-
-                    synchronized (queueMonitor)
-                    {
-                        queueMonitor.notifyAll();
-                    }
                 }
 
                 session.terminate();
@@ -145,7 +138,7 @@ public class ArduinoGUIDemo extends javax.swing.JFrame
         }
     }
 
-    private void blinkLED(int numTimes)
+    private void blinkLED(int numBlinks)
     {
         final AtomicBoolean success = new AtomicBoolean(false);
 
@@ -153,7 +146,7 @@ public class ArduinoGUIDemo extends javax.swing.JFrame
         {
             SwingUtilities.invokeLater(() -> setControlsEnabled(false));
 
-            session.sendCommand(true, String.format("*BLINK_LED,%d\n", numTimes));
+            session.sendCommand(true, String.format("*BLINK_LED,%d\n", numBlinks));
 
             final AtomicBoolean interrupt = new AtomicBoolean(false);
             session.processMessages(interrupt, 10_000, message ->
@@ -208,6 +201,7 @@ public class ArduinoGUIDemo extends javax.swing.JFrame
         return "Unknown";
     }
 
+    // initComponents() - IDE Generated code for Swing GUI components:
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents()
